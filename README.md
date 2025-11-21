@@ -12,15 +12,14 @@ https://developer.apple.com/documentation/devicemanagement/setting-up-push-notif
 
 The script:
 
-1. Extracts the private key and certificate from your **`key.p12`** (MDM Vendor private key).
-2. Converts **`mdm.cer`** (Vendor certificate) into PEM format.
-3. Builds the full certificate chain:
-   - Your MDM Vendor Certificate
-   - Apple WWDR Intermediate
-   - Apple Root Certificate 
-4. Generates a customer CSR (PEM → DER).
-5. Signs the DER CSR using your Vendor key (SHA1), as required by Apple.
-6. Creates a plist of the form:
+1. Extracts the **private key** and **MDM Vendor certificate** from your **`mdm.p12`** (exported from Keychain Access).
+2. Builds the full certificate chain:
+   - Your MDM Vendor Certificate (from `key.p12`)  
+   - Apple WWDR Intermediate (`AppleWWDRCAG3.cer`)  
+   - Apple Root Certificate (`AppleIncRootCertificate.cer`)  
+3. Generates a customer CSR (PEM → DER).
+4. Signs the DER CSR using your Vendor key (SHA1), as required by Apple.
+5. Creates a plist of the form:
 
    ```xml
    <key>PushCertRequestCSR</key>
@@ -45,8 +44,7 @@ The script:
 - Built‑in **Python 3**
 - Built‑in **/usr/bin/openssl (LibreSSL)**  
 - Your valid **Apple MDM Vendor certificate**:
-  - `mdm.cer`
-  - `key.p12` (PKCS#12 with password)
+  - `key.p12` (contains both the vendor certificate and private key, exported from Keychain Access + password you are enetered while export)
 - Apple certificate authority files:
   - https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer  
   - http://www.apple.com/appleca/AppleIncRootCertificate.cer  
@@ -60,8 +58,7 @@ Place all files in a single directory:
 ```
 mdm_scr/
 ├── mdm_csr.py
-├── mdm.cer
-├── key.p12
+├── mdm.p12
 ├── AppleWWDRCAG3.cer
 └── AppleIncRootCertificate.cer
 ```
@@ -72,12 +69,12 @@ mdm_scr/
 
 ```bash
 cd /path/to/mdm_scr
-python3 mdm_csr.py mdm.cer key.p12
+python3 mdm_csr.py mdm.p12
 ```
 
 The script will:
 
-1. Ask for the password of `key.p12`.
+1. Ask for the password of `mdm.p12`.
 2. Ask for CSR subject fields: C, ST, L, O, OU, CN.
 
 After successful execution you will get:
@@ -98,5 +95,9 @@ In that case, the Apple portal will reject the request with:
 
 ❌ **Invalid Certificate Signing Request**  
 ❌ **Signing Certificate Chain Missing**
+
+- The script also validates that the PKCS#12 actually contains a certificate.  
+  If no valid certificate is found, it will exit with an error:
+  `Error: no valid certificate found in PKCS#12 (missing BEGIN CERTIFICATE).`
 
 ---
