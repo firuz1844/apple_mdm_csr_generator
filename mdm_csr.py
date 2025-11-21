@@ -9,16 +9,12 @@ OPENSSL_BIN = "/usr/bin/openssl"
 
 def main():
     # Check command-line arguments
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <vendor.cer> <key.p12>")
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <key.p12>")
         sys.exit(1)
-    vendor_cer = sys.argv[1]
-    key_p12 = sys.argv[2]
+    key_p12 = sys.argv[1]
 
-    # Validate input files
-    if not os.path.isfile(vendor_cer):
-        print(f"Certificate file not found: {vendor_cer}")
-        sys.exit(1)
+    # Validate input file
     if not os.path.isfile(key_p12):
         print(f"Key file not found: {key_p12}")
         sys.exit(1)
@@ -81,36 +77,20 @@ def main():
             print(result.stderr.strip() or "Unknown error")
             sys.exit(1)
 
-        # 2. Convert vendor.cer to PEM (if needed)
-        # Check whether file is in DER binary format
-        with open(vendor_cer, "rb") as f_in:
-            header = f_in.read(30)
-            # Determine if DER binary (contains non-ASCII bytes) or already PEM
-            is_binary = any(byte > 127 or byte < 32 for byte in header) and not header.startswith(b"-----BEGIN")
-        if is_binary:
-            # Convert DER → PEM
-            cmd = [
-                OPENSSL_BIN, "x509",
-                "-inform", "der",
-                "-in", vendor_cer,
-                "-out", vendor_pem_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                print("Error converting vendor.cer to PEM format:")
-                print(result.stderr.strip() or "Unknown error")
+        # Verify that the extracted certificate file looks valid
+        try:
+            with open(cert_pem_path, "r") as cert_f:
+                cert_content = cert_f.read()
+            if "-----BEGIN CERTIFICATE-----" not in cert_content:
+                print("Error: no valid certificate found in PKCS#12 (missing certificate data).")
                 sys.exit(1)
-        else:
-            # Copy or reuse existing PEM as vendor_pem_path
-            try:
-                with open(vendor_cer, "rb") as src, open(vendor_pem_path, "wb") as dst:
-                    dst.write(src.read())
-            except Exception as e:
-                print(f"Error processing {vendor_cer}: {e}")
-                sys.exit(1)
+        except Exception as e:
+            print(f"Error reading extracted certificate from PKCS#12: {e}")
+            sys.exit(1)
 
         # Additionally attempt to include Apple WWDR intermediate and Apple Root certificate
-        chain_paths = [vendor_pem_path]
+        # Start chain with the certificate extracted from PKCS#12
+        chain_paths = [cert_pem_path]
 
         # Apple WWDR intermediate certificate
         if os.path.isfile(wwdr_cer_path):
