@@ -14,7 +14,7 @@ The script:
 
 1. Extracts the **private key** and **MDM Vendor certificate** from your **`mdm.p12`** (exported from Keychain Access).
 2. Builds the full certificate chain:
-   - Your MDM Vendor Certificate (from `key.p12`)  
+   - Your MDM Vendor Certificate (from `mdm.p12`)  
    - Apple WWDR Intermediate (`AppleWWDRCAG3.cer`)  
    - Apple Root Certificate (`AppleIncRootCertificate.cer`)  
 3. Generates a customer CSR (PEM → DER).
@@ -44,7 +44,7 @@ The script:
 - Built‑in **Python 3**
 - Built‑in **/usr/bin/openssl (LibreSSL)**  
 - Your valid **Apple MDM Vendor certificate**:
-  - `key.p12` (contains both the vendor certificate and private key, exported from Keychain Access + password you are enetered while export)
+  - `mdm.p12` (contains both the vendor certificate and private key, exported from Keychain Access + password you are enetered while export)
 - Apple certificate authority files:
   - https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer  
   - http://www.apple.com/appleca/AppleIncRootCertificate.cer  
