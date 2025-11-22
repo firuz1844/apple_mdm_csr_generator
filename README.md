@@ -79,11 +79,11 @@ The script will:
 
 After successful execution you will get:
 
-- **PushCertificateRequest.plist** — final plist required by Apple  
+- **PushCertificateRequest.plist** — final plist in readable format  
 - **PushCertificateRequest.plist.base64** — base64‑encoded plist  
 - **request.csr** — same base64 plist, convenient for portal upload  
 
-Upload `request.csr` or `PushCertificateRequest.plist.base64` to:  
+Upload `request.csr` to:  
 https://identity.apple.com/pushcert/
 
 ---
