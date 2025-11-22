@@ -83,7 +83,7 @@ After successful execution you will get:
 - **PushCertificateRequest.plist.base64** — base64‑encoded plist  
 - **request.csr** — same base64 plist, convenient for portal upload  
 
-Upload `request.csr` to:  
+Provide the `request.csr` file to your MDM customer so they can upload it to:
 https://identity.apple.com/pushcert/
 
 ---
