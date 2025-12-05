@@ -4,13 +4,14 @@ import subprocess
 import tempfile
 import getpass
 import base64
+# import shutil
 
 OPENSSL_BIN = "/usr/bin/openssl"
 
 def main():
     # Check command-line arguments
     if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <key.p12>")
+        print(f"Usage: {sys.argv[0]} <CertAndKkeyFile.p12>")
         sys.exit(1)
     key_p12 = sys.argv[1]
 
@@ -24,6 +25,13 @@ def main():
         p12_password = getpass.getpass(f"Enter password for {key_p12}: ")
     except Exception as e:
         print(f"Password input error: {e}")
+        sys.exit(1)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        generated_key_path = os.path.join(script_dir, "csr_private_key.pem")
+    except Exception as e:
+        print(f"Failed to create key file: {e}")
         sys.exit(1)
 
     # Create temporary files for key, certificate and configuration
@@ -190,9 +198,29 @@ def main():
             sys.exit(1)
 
         # 4. Generate CSR (PEM) with openssl
+        ## 4.1 Generate private key
+        print("Generating key...")
+        cmd = [
+            OPENSSL_BIN, "genrsa",
+            "-out", generated_key_path,
+            "2048",
+        ]
+        print(cmd)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print("Error generating key with openssl:")
+            print(result.stderr.strip() or "Unknown error")
+            sys.exit(1)
+        else:
+            # dest_key_path = os.path.join(script_dir, "new_key.pem")
+            # shutil.copy(generated_key_path, dest_key_path)
+
+            print(result.stdout)
+
+        ## 4.2. Creating CSR
         cmd = [
             OPENSSL_BIN, "req", "-new",
-            "-key", key_pem_path,
+            "-key", generated_key_path,
             "-out", csr_pem_path,
             "-config", csr_conf_path,
             "-sha256",
@@ -218,6 +246,7 @@ def main():
             sys.exit(1)
 
         # Sign DER CSR with vendor private key using SHA1 (as in Apple examples)
+        print("Signing CSR...")
         cmd = [
             OPENSSL_BIN, "sha1", "-sign", key_pem_path,
             "-out", csr_sig_path,
@@ -245,7 +274,7 @@ def main():
         plist_xml = f'''<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n    <key>PushCertRequestCSR</key>\n    <string>{csr_der_b64}</string>\n    <key>PushCertCertificateChain</key>\n    <string>\n{vendor_chain}\n</string>\n    <key>PushCertSignature</key>\n    <string>{sig_b64}</string>\n</dict>\n</plist>\n'''
 
         try:
-            with open("PushCertificateRequest.plist", "w", encoding="utf-8") as f:
+            with open("request.plist", "w", encoding="utf-8") as f:
                 f.write(plist_xml)
         except Exception as e:
             print(f"Error writing PushCertificateRequest.plist: {e}")
@@ -254,17 +283,15 @@ def main():
         # Base64-encode the entire plist
         try:
             plist_b64 = base64.b64encode(plist_xml.encode("utf-8")).decode("ascii")
-            with open("PushCertificateRequest.plist.base64", "w", encoding="utf-8") as f:
-                f.write(plist_b64)
-            # request.csr contains the same base64 plist for convenience
+            # base64 plist for uploading to Apple
             with open("request.csr", "w", encoding="utf-8") as f:
                 f.write(plist_b64)
         except Exception as e:
             print(f"Error writing base64 files: {e}")
             sys.exit(1)
 
-        print("\nFiles 'PushCertificateRequest.plist' and 'PushCertificateRequest.plist.base64' have been created.")
-        print("File 'request.csr' contains the same base64 plist and is ready for uploading to the Apple portal.")
+        print("\nFiles 'request.plist' and 'request.csr' have been created.")
+        print("File 'request.csr' contains the same data as in plist but base64 encoded. It is ready for uploading to the Apple portal by customer on http://identity.apple.com/pushcert/.")
 
     finally:
         # Remove only temporary files that were created
