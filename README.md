@@ -1,6 +1,6 @@
 # Apple MDM CSR Generator
 
-A Python script for generating the **Apple MDM Vendor–side CSR** for your MDM customers.
+A Python script for manual generating the **Apple MDM Vendor–side CSR** for your MDM customers.
 The script produces the special plist format required by Apple and prepares it for upload to the Apple Push Certificates Portal.
 
 Based on Apple's official documentation:
@@ -12,12 +12,12 @@ https://developer.apple.com/documentation/devicemanagement/setting-up-push-notif
 
 The script:
 
-1. Extracts the **private key** and **MDM Vendor certificate** from your **`mdm.p12`** (exported from Keychain Access).
+1. Extracts the **private key** and **MDM Vendor certificate** from your **`CertAndKeyFile.p12`** (exported from Keychain Access).
 2. Builds the full certificate chain:
-   - Your MDM Vendor Certificate (from `mdm.p12`)  
-   - Apple WWDR Intermediate (`AppleWWDRCAG3.cer`)  
-   - Apple Root Certificate (`AppleIncRootCertificate.cer`)  
-3. Generates a customer CSR (PEM → DER).
+   - Your MDM Vendor Certificate (extracted from provided p12 container)
+   - Apple WWDR Intermediate (`AppleWWDRCAG3.cer`)
+   - Apple Root Certificate (`AppleIncRootCertificate.cer`)
+3. Generates a customer CSR based on new Customer private key (PEM → DER).
 4. Signs the DER CSR using your Vendor key (SHA1), as required by Apple.
 5. Creates a plist of the form:
 
@@ -40,63 +40,69 @@ The script:
 
 ## Requirements
 
-- macOS  
+- macOS
 - Built‑in **Python 3**
-- Built‑in **/usr/bin/openssl (LibreSSL)**  
+- Built‑in **/usr/bin/openssl (LibreSSL)**
 - Your valid **Apple MDM Vendor certificate**:
-  - `mdm.p12` (contains both the vendor certificate and private key, exported from Keychain Access + password you are enetered while export)
+  - `CertAndKeyFile.p12` (contains both the vendor certificate and private key, exported from Keychain Access + password you are enetered while export)
 - Apple certificate authority files:
-  - https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer  
-  - http://www.apple.com/appleca/AppleIncRootCertificate.cer  
-
----
-
-## Folder layout
-
-Place all files in a single directory:
-
-```
-mdm_scr/
-├── mdm_csr.py
-├── mdm.p12
-├── AppleWWDRCAG3.cer
-└── AppleIncRootCertificate.cer
-```
+  - https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer
+  - http://www.apple.com/appleca/AppleIncRootCertificate.cer
 
 ---
 
 ## Usage
 
+1. Download and put Apple's root certificates to folder with script (AppleWWDRCAG3.cer and AppleIncRootCertificate.cer).
+2. Export and put to the same folder private key and vendor certificate from Keychain Acces on the computer, where CSR was generated to p12 container
+```
+/path/to/mdm_scr/
+├── mdm_csr.py
+├── CertAndKeyFile.p12 (yor Vendor Cert and Private key exported from Keychain Access)
+├── AppleWWDRCAG3.cer
+└── AppleIncRootCertificate.cer
+```
+4. Run script and provide Customer's Organisation Country, Name, Address etc
+
 ```bash
 cd /path/to/mdm_scr
-python3 mdm_csr.py mdm.p12
+python3 mdm_csr.py CertAndKeyFile.p12
 ```
 
 The script will:
 
-1. Ask for the password of `mdm.p12`.
+1. Ask for the password of `CertAndKeyFile.p12`.
 2. Ask for CSR subject fields: C, ST, L, O, OU, CN.
 
-After successful execution you will get:
+After successful execution you will get in the same folder:
 
-- **PushCertificateRequest.plist** — final plist in readable format  
-- **PushCertificateRequest.plist.base64** — base64‑encoded plist  
-- **request.csr** — same base64 plist, convenient for portal upload  
+- **csr_private_key.pem** — a new private key generated while creating the CSR request.
+- **request.csr** — base64 encoded plist, for portal upload
+
+```
+mdm_csr/
+├── ...
+├── csr_private_key.pem (Keep this private key)
+└── request.csr (Send this file to customer)
+```
+
 
 Provide the `request.csr` file to your MDM customer so they can upload it to:
 https://identity.apple.com/pushcert/
+
+After customer creates certificate, they give it back to you. You will need both the new certificate and csr_private_key.pem for sending MDM commands to customer's devices.
 
 ---
 
 ## ⚠️ Important
 
-If WWDR or Root certificates are missing, the script will warn you and produce an incomplete chain.  
+If WWDR or Root certificates are missing, the script will warn you and produce an incomplete chain.
 In that case, the Apple portal will reject the request with:
 
-❌ **Invalid Certificate Signing Request**  
+❌ **Invalid Certificate Signing Request**
 ❌ **Signing Certificate Chain Missing**
 
-- The script also validates that the PKCS#12 actually contains a certificate.  
+- The script also validates that the PKCS#12 actually contains a certificate.
   If no valid certificate is found, it will exit with an error:
   `Error: no valid certificate found in PKCS#12 (missing BEGIN CERTIFICATE).`
 
