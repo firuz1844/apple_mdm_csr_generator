@@ -54,7 +54,7 @@ The script:
 ## Usage
 
 1. Download and put Apple's root certificates to folder with script (AppleWWDRCAG3.cer and AppleIncRootCertificate.cer).
-2. Export and put to the same folder private key and vendor certificate from Keychain Acces on the computer, where CSR was generated to p12 container
+2. Export and put to the same folder private key and vendor certificate from Keychain Acces on the computer, where Vendor CSR was generated to p12 container
 ```
 /path/to/mdm_csr/
 ├── mdm_csr.py
