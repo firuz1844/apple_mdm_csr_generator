@@ -56,23 +56,23 @@ The script:
 1. Download and put Apple's root certificates to folder with script (AppleWWDRCAG3.cer and AppleIncRootCertificate.cer).
 2. Export and put to the same folder private key and vendor certificate from Keychain Acces on the computer, where CSR was generated to p12 container
 ```
-/path/to/mdm_scr/
+/path/to/mdm_csr/
 ├── mdm_csr.py
 ├── CertAndKeyFile.p12 (yor Vendor Cert and Private key exported from Keychain Access)
 ├── AppleWWDRCAG3.cer
 └── AppleIncRootCertificate.cer
 ```
-4. Run script and provide Customer's Organisation Country, Name, Address etc
+3. Run script and provide Customer's Organisation Country, Name, Address etc
 
 ```bash
-cd /path/to/mdm_scr
+cd /path/to/mdm_csr
 python3 mdm_csr.py CertAndKeyFile.p12
 ```
 
 The script will:
 
-1. Ask for the password of `CertAndKeyFile.p12`.
-2. Ask for CSR subject fields: C, ST, L, O, OU, CN.
+- Ask for the password of `CertAndKeyFile.p12`.
+- Ask for CSR subject fields: C, ST, L, O, OU, CN.
 
 After successful execution you will get in the same folder:
 
@@ -80,12 +80,13 @@ After successful execution you will get in the same folder:
 - **request.csr** — base64 encoded plist, for portal upload
 
 ```
-mdm_csr/
+/path/to/mdm_csr/
 ├── ...
 ├── csr_private_key.pem (Keep this private key)
 └── request.csr (Send this file to customer)
 ```
 
+Done!
 
 Provide the `request.csr` file to your MDM customer so they can upload it to:
 https://identity.apple.com/pushcert/
